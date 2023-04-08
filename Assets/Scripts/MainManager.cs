@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,9 +13,11 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
+    public Text HighScoreText;
     
     private bool m_Started = false;
     private int m_Points;
+    private int m_HighScore;
     
     private bool m_GameOver = false;
 
@@ -24,6 +27,8 @@ public class MainManager : MonoBehaviour
     {
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
+
+        LoadHighScore();
         
         int[] pointCountArray = new [] {1,1,2,2,5,5};
         for (int i = 0; i < LineCount; ++i)
@@ -72,5 +77,54 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        //добавить обновление рекорда
+        HighScoreChange();
+    }
+
+    [System.Serializable]
+    class SaveData
+    {
+        public string name;
+        public int score;
+    }
+    
+    public void SaveHighScore()
+    {
+        SaveData saveData = new SaveData();
+        saveData.score = m_Points;
+        if (GameController.Instance != null)
+        {
+            saveData.name = GameController.Instance.PlayerName;
+        }
+        else
+        {
+            saveData.name = "Shy Noname";
+        }
+        string json = JsonUtility.ToJson(saveData);
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+    public void LoadHighScore()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+            m_HighScore = data.score;
+            HighScoreText.text = $"Best Score: {data.name} : {data.score}"; //Best Score : Name : 0
+        }
+    }
+    public void HighScoreChange()
+    {
+        if (m_Points > m_HighScore)
+        {
+            string name = "Name";
+            if (GameController.Instance != null)
+            {
+                name = GameController.Instance.PlayerName;
+            }
+            HighScoreText.text = $"Best Score: {name} : {m_HighScore}";
+            SaveHighScore();
+        }
     }
 }
